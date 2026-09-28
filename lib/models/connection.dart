@@ -1,22 +1,62 @@
-enum SshAuthType { password, privateKey }
+sealed class SshAuth {
+  const SshAuth();
+
+  factory SshAuth.fromJson(Map<String, dynamic> json) {
+    final type = json['type'] as String?;
+    if (type == 'privateKey') {
+      return SshPrivateKeyAuth(
+        privateKey: json['privateKey'] ?? '',
+        passphrase: json['passphrase'] ?? '',
+      );
+    }
+    return SshPasswordAuth(
+      password: json['password'] ?? '',
+    );
+  }
+
+  Map<String, dynamic> toJson();
+}
+
+class SshPasswordAuth extends SshAuth {
+  final String password;
+
+  const SshPasswordAuth({this.password = ''});
+
+  @override
+  Map<String, dynamic> toJson() => {
+        'type': 'password',
+        'password': password,
+      };
+}
+
+class SshPrivateKeyAuth extends SshAuth {
+  final String privateKey;
+  final String passphrase;
+
+  const SshPrivateKeyAuth({
+    this.privateKey = '',
+    this.passphrase = '',
+  });
+
+  @override
+  Map<String, dynamic> toJson() => {
+        'type': 'privateKey',
+        'privateKey': privateKey,
+        'passphrase': passphrase,
+      };
+}
 
 class SshConfig {
   String host;
   int port;
   String username;
-  SshAuthType authType;
-  String password;
-  String privateKey;
-  String passphrase;
+  SshAuth auth;
 
   SshConfig({
     this.host = '',
     this.port = 22,
     this.username = '',
-    this.authType = SshAuthType.password,
-    this.password = '',
-    this.privateKey = '',
-    this.passphrase = '',
+    this.auth = const SshPasswordAuth(),
   });
 
   factory SshConfig.fromJson(Map<String, dynamic> json) {
@@ -24,12 +64,9 @@ class SshConfig {
       host: json["host"] ?? '',
       port: json["port"] ?? 22,
       username: json["username"] ?? '',
-      authType: json["authType"] == "privateKey"
-          ? SshAuthType.privateKey
-          : SshAuthType.password,
-      password: json["password"] ?? '',
-      privateKey: json["privateKey"] ?? '',
-      passphrase: json["passphrase"] ?? '',
+      auth: json["auth"] != null
+          ? SshAuth.fromJson(Map<String, dynamic>.from(json["auth"]))
+          : SshAuth.fromJson(json),
     );
   }
 
@@ -37,10 +74,7 @@ class SshConfig {
         'host': host,
         'port': port,
         'username': username,
-        'authType': authType.name,
-        'password': password,
-        'privateKey': privateKey,
-        'passphrase': passphrase,
+        'auth': auth.toJson(),
       };
 }
 

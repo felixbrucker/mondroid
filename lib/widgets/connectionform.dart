@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../services/settingsservice.dart';
 
-import 'package:mondroid/models/connection.dart';
+enum SshAuthMode { password, privateKey }
 
 class ConnectionForm extends StatefulWidget {
   final bool isAdd;
@@ -12,12 +12,12 @@ class ConnectionForm extends StatefulWidget {
   final TextEditingController sshHostController;
   final TextEditingController sshPortController;
   final TextEditingController sshUsernameController;
-  final SshAuthType sshAuthType;
+  final SshAuthMode sshAuthMode;
   final TextEditingController sshPasswordController;
   final TextEditingController sshPrivateKeyController;
   final TextEditingController sshPassphraseController;
   final ValueChanged<bool> onUseSshChanged;
-  final ValueChanged<SshAuthType> onSshAuthTypeChanged;
+  final ValueChanged<SshAuthMode> onSshAuthModeChanged;
   final VoidCallback onSubmit;
   final VoidCallback onHelp;
 
@@ -30,12 +30,12 @@ class ConnectionForm extends StatefulWidget {
     required this.sshHostController,
     required this.sshPortController,
     required this.sshUsernameController,
-    required this.sshAuthType,
+    required this.sshAuthMode,
     required this.sshPasswordController,
     required this.sshPrivateKeyController,
     required this.sshPassphraseController,
     required this.onUseSshChanged,
-    required this.onSshAuthTypeChanged,
+    required this.onSshAuthModeChanged,
     required this.onSubmit,
     required this.onHelp,
   });
@@ -46,13 +46,13 @@ class ConnectionForm extends StatefulWidget {
 
 class _ConnectionFormState extends State<ConnectionForm> {
   late bool _useSsh;
-  late SshAuthType _sshAuthType;
+  late SshAuthMode _sshAuthMode;
 
   @override
   void initState() {
     super.initState();
     _useSsh = widget.useSsh;
-    _sshAuthType = widget.sshAuthType;
+    _sshAuthMode = widget.sshAuthMode;
   }
 
   @override
@@ -167,33 +167,33 @@ class _ConnectionFormState extends State<ConnectionForm> {
             ),
           ),
           const SizedBox(height: 12),
-          DropdownButtonFormField<SshAuthType>(
-            initialValue: _sshAuthType,
+          DropdownButtonFormField<SshAuthMode>(
+            initialValue: _sshAuthMode,
             decoration: const InputDecoration(
               hintText: "Authentication Method",
               helperText: 'Select auth method',
             ),
             items: const [
               DropdownMenuItem(
-                value: SshAuthType.password,
+                value: SshAuthMode.password,
                 child: Text('Password'),
               ),
               DropdownMenuItem(
-                value: SshAuthType.privateKey,
+                value: SshAuthMode.privateKey,
                 child: Text('Public Key'),
               ),
             ],
-            onChanged: (SshAuthType? value) {
+            onChanged: (SshAuthMode? value) {
               if (value != null) {
                 setState(() {
-                  _sshAuthType = value;
+                  _sshAuthMode = value;
                 });
-                widget.onSshAuthTypeChanged(value);
+                widget.onSshAuthModeChanged(value);
               }
             },
           ),
           const SizedBox(height: 12),
-          if (_sshAuthType == SshAuthType.password) ...[
+          if (_sshAuthMode == SshAuthMode.password) ...[
             TextField(
               controller: widget.sshPasswordController,
               obscureText: true,

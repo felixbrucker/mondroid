@@ -19,8 +19,7 @@ void main() {
           host: '192.168.1.100',
           port: 2222,
           username: 'sshuser',
-          authType: SshAuthType.password,
-          password: 'sshpassword',
+          auth: const SshPasswordAuth(password: 'sshpassword'),
         ),
       );
 
@@ -30,8 +29,8 @@ void main() {
       expect(json['sshConfig']['host'], '192.168.1.100');
       expect(json['sshConfig']['port'], 2222);
       expect(json['sshConfig']['username'], 'sshuser');
-      expect(json['sshConfig']['authType'], 'password');
-      expect(json['sshConfig']['password'], 'sshpassword');
+      expect(json['sshConfig']['auth']['type'], 'password');
+      expect(json['sshConfig']['auth']['password'], 'sshpassword');
 
       final deserialized = Connection.fromJson(json);
       expect(deserialized.name, 'SSH Mongo Password');
@@ -39,8 +38,8 @@ void main() {
       expect(deserialized.sshConfig!.host, '192.168.1.100');
       expect(deserialized.sshConfig!.port, 2222);
       expect(deserialized.sshConfig!.username, 'sshuser');
-      expect(deserialized.sshConfig!.authType, SshAuthType.password);
-      expect(deserialized.sshConfig!.password, 'sshpassword');
+      expect(deserialized.sshConfig!.auth, isA<SshPasswordAuth>());
+      expect((deserialized.sshConfig!.auth as SshPasswordAuth).password, 'sshpassword');
     });
 
     test('Connection with private key SSH serialization and deserialization', () {
@@ -51,21 +50,23 @@ void main() {
           host: 'example.com',
           port: 22,
           username: 'root',
-          authType: SshAuthType.privateKey,
-          privateKey: '-----BEGIN OPENSSH PRIVATE KEY-----\n...\n-----END OPENSSH PRIVATE KEY-----',
-          passphrase: 'keypassphrase',
+          auth: const SshPrivateKeyAuth(
+            privateKey: '-----BEGIN OPENSSH PRIVATE KEY-----\n...\n-----END OPENSSH PRIVATE KEY-----',
+            passphrase: 'keypassphrase',
+          ),
         ),
       );
 
       final json = conn.toJson();
-      expect(json['sshConfig']['authType'], 'privateKey');
-      expect(json['sshConfig']['privateKey'], contains('BEGIN OPENSSH PRIVATE KEY'));
-      expect(json['sshConfig']['passphrase'], 'keypassphrase');
+      expect(json['sshConfig']['auth']['type'], 'privateKey');
+      expect(json['sshConfig']['auth']['privateKey'], contains('BEGIN OPENSSH PRIVATE KEY'));
+      expect(json['sshConfig']['auth']['passphrase'], 'keypassphrase');
 
       final deserialized = Connection.fromJson(json);
-      expect(deserialized.sshConfig!.authType, SshAuthType.privateKey);
-      expect(deserialized.sshConfig!.privateKey, contains('BEGIN OPENSSH PRIVATE KEY'));
-      expect(deserialized.sshConfig!.passphrase, 'keypassphrase');
+      expect(deserialized.sshConfig!.auth, isA<SshPrivateKeyAuth>());
+      final keyAuth = deserialized.sshConfig!.auth as SshPrivateKeyAuth;
+      expect(keyAuth.privateKey, contains('BEGIN OPENSSH PRIVATE KEY'));
+      expect(keyAuth.passphrase, 'keypassphrase');
     });
 
     test('Connection without SSH config deserialization', () {

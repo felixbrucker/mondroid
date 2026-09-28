@@ -54,28 +54,29 @@ class MongoService {
       timeout: const Duration(seconds: 15),
     );
 
-    if (sshConfig.authType == SshAuthType.password) {
-      _sshClient = SSHClient(
-        socket,
-        username: sshConfig.username,
-        onPasswordRequest: () => sshConfig.password,
-      );
-    } else {
-      List<SSHKeyPair> keyPairs;
-      if (sshConfig.passphrase.isNotEmpty) {
-        keyPairs = SSHKeyPair.fromPem(
-          sshConfig.privateKey,
-          sshConfig.passphrase,
+    switch (sshConfig.auth) {
+      case SshPasswordAuth auth:
+        _sshClient = SSHClient(
+          socket,
+          username: sshConfig.username,
+          onPasswordRequest: () => auth.password,
         );
-      } else {
-        keyPairs = SSHKeyPair.fromPem(sshConfig.privateKey);
-      }
+      case SshPrivateKeyAuth auth:
+        List<SSHKeyPair> keyPairs;
+        if (auth.passphrase.isNotEmpty) {
+          keyPairs = SSHKeyPair.fromPem(
+            auth.privateKey,
+            auth.passphrase,
+          );
+        } else {
+          keyPairs = SSHKeyPair.fromPem(auth.privateKey);
+        }
 
-      _sshClient = SSHClient(
-        socket,
-        username: sshConfig.username,
-        identities: keyPairs,
-      );
+        _sshClient = SSHClient(
+          socket,
+          username: sshConfig.username,
+          identities: keyPairs,
+        );
     }
 
     await _sshClient!.authenticated;

@@ -35,7 +35,7 @@ class HomeState extends State<Home> {
   final TextEditingController _sshHostController = TextEditingController();
   final TextEditingController _sshPortController = TextEditingController();
   final TextEditingController _sshUsernameController = TextEditingController();
-  SshAuthType _sshAuthType = SshAuthType.password;
+  SshAuthMode _sshAuthMode = SshAuthMode.password;
   final TextEditingController _sshPasswordController = TextEditingController();
   final TextEditingController _sshPrivateKeyController = TextEditingController();
   final TextEditingController _sshPassphraseController = TextEditingController();
@@ -93,7 +93,7 @@ class HomeState extends State<Home> {
     _sshHostController.clear();
     _sshPortController.text = "22";
     _sshUsernameController.clear();
-    _sshAuthType = SshAuthType.password;
+    _sshAuthMode = SshAuthMode.password;
     _sshPasswordController.clear();
     _sshPrivateKeyController.clear();
     _sshPassphraseController.clear();
@@ -111,10 +111,15 @@ class HomeState extends State<Home> {
             _sshHostController.text = cfg.host;
             _sshPortController.text = cfg.port.toString();
             _sshUsernameController.text = cfg.username;
-            _sshAuthType = cfg.authType;
-            _sshPasswordController.text = cfg.password;
-            _sshPrivateKeyController.text = cfg.privateKey;
-            _sshPassphraseController.text = cfg.passphrase;
+            switch (cfg.auth) {
+              case SshPasswordAuth passwordAuth:
+                _sshAuthMode = SshAuthMode.password;
+                _sshPasswordController.text = passwordAuth.password;
+              case SshPrivateKeyAuth keyAuth:
+                _sshAuthMode = SshAuthMode.privateKey;
+                _sshPrivateKeyController.text = keyAuth.privateKey;
+                _sshPassphraseController.text = keyAuth.passphrase;
+            }
           }
           break;
         }
@@ -125,14 +130,18 @@ class HomeState extends State<Home> {
       final port = int.tryParse(_sshPortController.text) ?? 22;
       SshConfig? sshCfg;
       if (_useSsh) {
+        final SshAuth auth = _sshAuthMode == SshAuthMode.password
+            ? SshPasswordAuth(password: _sshPasswordController.text)
+            : SshPrivateKeyAuth(
+                privateKey: _sshPrivateKeyController.text,
+                passphrase: _sshPassphraseController.text,
+              );
+
         sshCfg = SshConfig(
           host: _sshHostController.text,
           port: port,
           username: _sshUsernameController.text,
-          authType: _sshAuthType,
-          password: _sshPasswordController.text,
-          privateKey: _sshPrivateKeyController.text,
-          passphrase: _sshPassphraseController.text,
+          auth: auth,
         );
       }
       return Connection(
@@ -150,12 +159,12 @@ class HomeState extends State<Home> {
       sshHostController: _sshHostController,
       sshPortController: _sshPortController,
       sshUsernameController: _sshUsernameController,
-      sshAuthType: _sshAuthType,
+      sshAuthMode: _sshAuthMode,
       sshPasswordController: _sshPasswordController,
       sshPrivateKeyController: _sshPrivateKeyController,
       sshPassphraseController: _sshPassphraseController,
       onUseSshChanged: (val) => _useSsh = val,
-      onSshAuthTypeChanged: (val) => _sshAuthType = val,
+      onSshAuthModeChanged: (val) => _sshAuthMode = val,
       onHelp: openUrl,
       onSubmit: () {
         final conn = buildConnectionToSave();
