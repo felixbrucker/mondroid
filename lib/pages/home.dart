@@ -31,6 +31,15 @@ class HomeState extends State<Home> {
   bool maskPassword = true;
   final TextEditingController _nameController = TextEditingController();
   final TextEditingController _uriController = TextEditingController();
+  bool _useSsh = false;
+  final TextEditingController _sshHostController = TextEditingController();
+  final TextEditingController _sshPortController = TextEditingController();
+  final TextEditingController _sshUsernameController = TextEditingController();
+  SshAuthType _sshAuthType = SshAuthType.password;
+  final TextEditingController _sshPasswordController = TextEditingController();
+  final TextEditingController _sshPrivateKeyController = TextEditingController();
+  final TextEditingController _sshPassphraseController = TextEditingController();
+
   List<Selectable<Connection>> connections = <Selectable<Connection>>[];
   final Uri _url =
       Uri.parse('https://vedfi.github.io/mondroid/help/connections');
@@ -80,30 +89,74 @@ class HomeState extends State<Home> {
     int index = -1;
     _nameController.clear();
     _uriController.clear();
+    _useSsh = false;
+    _sshHostController.clear();
+    _sshPortController.text = "22";
+    _sshUsernameController.clear();
+    _sshAuthType = SshAuthType.password;
+    _sshPasswordController.clear();
+    _sshPrivateKeyController.clear();
+    _sshPassphraseController.clear();
+
     if (!isAddDialog) {
       for (int i = 0; i < connections.length; i++) {
         if (connections[i].isSelected) {
           index = i;
-          _nameController.text = connections[i].item.name;
-          _uriController.text = connections[i].item.uri;
+          final conn = connections[i].item;
+          _nameController.text = conn.name;
+          _uriController.text = conn.uri;
+          _useSsh = conn.useSsh;
+          _sshHostController.text = conn.sshHost;
+          _sshPortController.text = conn.sshPort.toString();
+          _sshUsernameController.text = conn.sshUsername;
+          _sshAuthType = conn.sshAuthType;
+          _sshPasswordController.text = conn.sshPassword;
+          _sshPrivateKeyController.text = conn.sshPrivateKey;
+          _sshPassphraseController.text = conn.sshPassphrase;
           break;
         }
       }
     }
+
+    Connection buildConnectionToSave() {
+      final port = int.tryParse(_sshPortController.text) ?? 22;
+      return Connection(
+        _nameController.text,
+        _uriController.text,
+        useSsh: _useSsh,
+        sshHost: _sshHostController.text,
+        sshPort: port,
+        sshUsername: _sshUsernameController.text,
+        sshAuthType: _sshAuthType,
+        sshPassword: _sshPasswordController.text,
+        sshPrivateKey: _sshPrivateKeyController.text,
+        sshPassphrase: _sshPassphraseController.text,
+      );
+    }
+
     final form = ConnectionForm(
       isAdd: isAddDialog,
       nameController: _nameController,
       uriController: _uriController,
+      useSsh: _useSsh,
+      sshHostController: _sshHostController,
+      sshPortController: _sshPortController,
+      sshUsernameController: _sshUsernameController,
+      sshAuthType: _sshAuthType,
+      sshPasswordController: _sshPasswordController,
+      sshPrivateKeyController: _sshPrivateKeyController,
+      sshPassphraseController: _sshPassphraseController,
+      onUseSshChanged: (val) => _useSsh = val,
+      onSshAuthTypeChanged: (val) => _sshAuthType = val,
       onHelp: openUrl,
       onSubmit: () {
+        final conn = buildConnectionToSave();
         if (isAddDialog) {
-          add(_nameController.text, _uriController.text);
+          addConnection(conn);
         } else {
-          update(index, _nameController.text, _uriController.text);
+          updateConnection(index, conn);
         }
         Navigator.pop(context);
-        _nameController.clear();
-        _uriController.clear();
       },
     );
     await showFormSheet(context: context, child: form);
@@ -114,22 +167,22 @@ class HomeState extends State<Home> {
     }
   }
 
-  void add(String name, String uri) {
-    if (name.isNotEmpty && uri.isNotEmpty) {
+  void addConnection(Connection connection) {
+    if (connection.name.isNotEmpty && connection.uri.isNotEmpty) {
       setState(() {
-        connections.add(Selectable(Connection(name, uri)));
+        connections.add(Selectable(connection));
       });
       saveConnections();
     }
   }
 
-  void update(int index, String name, String uri) {
+  void updateConnection(int index, Connection connection) {
     if (index >= 0 &&
         connections.length > index &&
-        name.isNotEmpty &&
-        uri.isNotEmpty) {
+        connection.name.isNotEmpty &&
+        connection.uri.isNotEmpty) {
       setState(() {
-        connections[index] = Selectable(Connection(name, uri));
+        connections[index] = Selectable(connection);
       });
       saveConnections();
     }
@@ -160,7 +213,7 @@ class HomeState extends State<Home> {
       isLoading = true;
     });
     bool connected = await MongoService()
-        .connect(connections[index].item.getConnectionString());
+        .connect(connections[index].item);
     setState(() {
       isLoading = false;
     });
@@ -268,7 +321,7 @@ class HomeState extends State<Home> {
                     physics: const AlwaysScrollableScrollPhysics(),
                     buildDefaultDragHandles: false,
                     padding: EdgeInsets.fromLTRB(15, 20, 15, Platform.isAndroid ? 90 : 140),
-                    onReorderItem: (oldIndex, newIndex) {
+                    onReorder: (oldIndex, newIndex) {
                       reorder(oldIndex, newIndex);
                     },
                     itemCount: connections.length,

@@ -1,7 +1,10 @@
 import 'dart:async';
+import 'dart:io';
 
+import 'package:dartssh2/dartssh2.dart';
+import 'package:mondroid/models/connection.dart';
 import 'package:mondroid/services/popupservice.dart';
-import 'package:mongo_dart/mongo_dart.dart';
+import 'package:mongo_dart/mongo_dart.dart' hide Connection;
 
 class MongoCollection {
   String name;
@@ -13,7 +16,9 @@ class MongoCollection {
 class MongoService {
   static final MongoService _mongoService = MongoService._internal();
   Db? _database;
-  String _lastConnectedUri = '';
+  Connection? _lastConnection;
+  SSHClient? _sshClient;
+  ServerSocket? _localServer;
 
   factory MongoService() {
     return _mongoService;
@@ -21,21 +26,112 @@ class MongoService {
 
   MongoService._internal();
 
-  Future<bool> connect(String uri) async {
+  Future<void> _closeSshTunnel() async {
+    try {
+      await _localServer?.close();
+    } catch (_) {}
+    _localServer = null;
+
+    try {
+      _sshClient?.close();
+    } catch (_) {}
+    _sshClient = null;
+  }
+
+  Future<String> _setupSshTunnel(Connection connection) async {
+    final parsedUri = Uri.parse(connection.uri);
+    final targetHost = parsedUri.host.isEmpty ? '127.0.0.1' : parsedUri.host;
+    final targetPort = parsedUri.hasPort ? parsedUri.port : 27017;
+
+    final socket = await SSHSocket.connect(
+      connection.sshHost,
+      connection.sshPort,
+      timeout: const Duration(seconds: 15),
+    );
+
+    if (connection.sshAuthType == SshAuthType.password) {
+      _sshClient = SSHClient(
+        socket,
+        username: connection.sshUsername,
+        onPasswordRequest: () => connection.sshPassword,
+      );
+    } else {
+      List<SSHKeyPair> keyPairs;
+      if (connection.sshPassphrase.isNotEmpty) {
+        keyPairs = SSHKeyPair.fromPem(
+          connection.sshPrivateKey,
+          connection.sshPassphrase,
+        );
+      } else {
+        keyPairs = SSHKeyPair.fromPem(connection.sshPrivateKey);
+      }
+
+      _sshClient = SSHClient(
+        socket,
+        username: connection.sshUsername,
+        identities: keyPairs,
+      );
+    }
+
+    await _sshClient!.authenticated;
+
+    _localServer = await ServerSocket.bind(InternetAddress.loopbackIPv4, 0);
+    final localPort = _localServer!.port;
+
+    _localServer!.listen((clientSocket) async {
+      try {
+        final forwardChannel =
+            await _sshClient!.forwardLocal(targetHost, targetPort);
+        clientSocket.listen(
+          forwardChannel.sink.add,
+          onDone: () => forwardChannel.close(),
+          onError: (_) => forwardChannel.close(),
+        );
+        forwardChannel.stream.listen(
+          clientSocket.add,
+          onDone: () => clientSocket.close(),
+          onError: (_) => clientSocket.close(),
+        );
+      } catch (e) {
+        clientSocket.close();
+      }
+    });
+
+    final newUri = parsedUri.replace(
+      host: '127.0.0.1',
+      port: localPort,
+    );
+    return newUri.toString();
+  }
+
+  Future<bool> connect(Connection connection) async {
     try {
       if (_database != null && _database!.isConnected) {
-        if (_lastConnectedUri == uri) {
+        if (_lastConnection != null &&
+            _lastConnection!.name == connection.name &&
+            _lastConnection!.uri == connection.uri &&
+            _lastConnection!.useSsh == connection.useSsh) {
           return true;
         }
         await _database!.close();
+        await _closeSshTunnel();
+      } else {
+        await _closeSshTunnel();
       }
-      _database = await Db.create(uri);
+
+      String targetUri = connection.uri;
+      if (connection.useSsh) {
+        targetUri = await _setupSshTunnel(connection);
+      }
+
+      _database = await Db.create(targetUri);
       await _database!.open();
-      _lastConnectedUri = uri;
+      _lastConnection = connection;
       return true;
     } catch (e) {
+      await _closeSshTunnel();
       PopupService.show(e.toString());
-      _lastConnectedUri = '';
+      _lastConnection = null;
       return false;
     }
   }
@@ -43,8 +139,8 @@ class MongoService {
   Future<void> reconnect() async {
     try {
       if ((_database == null || !(_database!.isConnected)) &&
-          _lastConnectedUri.isNotEmpty) {
-        await connect(_lastConnectedUri);
+          _lastConnection != null) {
+        await connect(_lastConnection!);
       }
     } catch (e) {
       PopupService.show("Reconnect Failed: $e");
