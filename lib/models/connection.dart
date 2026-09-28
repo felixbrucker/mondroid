@@ -1,56 +1,84 @@
 enum SshAuthType { password, privateKey }
 
+class SshConfig {
+  bool enabled;
+  String host;
+  int port;
+  String username;
+  SshAuthType authType;
+  String password;
+  String privateKey;
+  String passphrase;
+
+  SshConfig({
+    this.enabled = false,
+    this.host = '',
+    this.port = 22,
+    this.username = '',
+    this.authType = SshAuthType.password,
+    this.password = '',
+    this.privateKey = '',
+    this.passphrase = '',
+  });
+
+  factory SshConfig.fromJson(Map<String, dynamic> json) {
+    return SshConfig(
+      enabled: json["enabled"] ?? json["useSsh"] ?? false,
+      host: json["host"] ?? json["sshHost"] ?? '',
+      port: json["port"] ?? json["sshPort"] ?? 22,
+      username: json["username"] ?? json["sshUsername"] ?? '',
+      authType: (json["authType"] ?? json["sshAuthType"]) == "privateKey"
+          ? SshAuthType.privateKey
+          : SshAuthType.password,
+      password: json["password"] ?? json["sshPassword"] ?? '',
+      privateKey: json["privateKey"] ?? json["sshPrivateKey"] ?? '',
+      passphrase: json["passphrase"] ?? json["sshPassphrase"] ?? '',
+    );
+  }
+
+  Map<String, dynamic> toJson() => {
+        'enabled': enabled,
+        'host': host,
+        'port': port,
+        'username': username,
+        'authType': authType.name,
+        'password': password,
+        'privateKey': privateKey,
+        'passphrase': passphrase,
+      };
+}
+
 class Connection {
   String name;
   String uri;
-
-  bool useSsh;
-  String sshHost;
-  int sshPort;
-  String sshUsername;
-  SshAuthType sshAuthType;
-  String sshPassword;
-  String sshPrivateKey;
-  String sshPassphrase;
+  SshConfig? sshConfig;
 
   Connection(
     this.name,
     this.uri, {
-    this.useSsh = false,
-    this.sshHost = '',
-    this.sshPort = 22,
-    this.sshUsername = '',
-    this.sshAuthType = SshAuthType.password,
-    this.sshPassword = '',
-    this.sshPrivateKey = '',
-    this.sshPassphrase = '',
+    this.sshConfig,
   });
 
-  Connection.fromJson(Map<String, dynamic> json)
-      : name = json["name"] ?? '',
-        uri = json["uri"] ?? '',
-        useSsh = json["useSsh"] ?? false,
-        sshHost = json["sshHost"] ?? '',
-        sshPort = json["sshPort"] ?? 22,
-        sshUsername = json["sshUsername"] ?? '',
-        sshAuthType = json["sshAuthType"] == "privateKey"
-            ? SshAuthType.privateKey
-            : SshAuthType.password,
-        sshPassword = json["sshPassword"] ?? '',
-        sshPrivateKey = json["sshPrivateKey"] ?? '',
-        sshPassphrase = json["sshPassphrase"] ?? '';
+  factory Connection.fromJson(Map<String, dynamic> json) {
+    SshConfig? sshCfg;
+    if (json["sshConfig"] != null) {
+      sshCfg = SshConfig.fromJson(Map<String, dynamic>.from(json["sshConfig"]));
+    } else if (json["useSsh"] == true ||
+        (json["sshHost"] != null && (json["sshHost"] as String).isNotEmpty)) {
+      sshCfg = SshConfig.fromJson(json);
+    }
+
+    return Connection(
+      json["name"] ?? '',
+      json["uri"] ?? '',
+      sshConfig: sshCfg,
+    );
+  }
 
   Map<String, dynamic> toJson() => {
         'name': name,
         'uri': uri,
-        'useSsh': useSsh,
-        'sshHost': sshHost,
-        'sshPort': sshPort,
-        'sshUsername': sshUsername,
-        'sshAuthType': sshAuthType.name,
-        'sshPassword': sshPassword,
-        'sshPrivateKey': sshPrivateKey,
-        'sshPassphrase': sshPassphrase,
+        if (sshConfig != null) 'sshConfig': sshConfig!.toJson(),
       };
 
   String getConnectionString() => uri;

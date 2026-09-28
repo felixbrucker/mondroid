@@ -39,36 +39,41 @@ class MongoService {
   }
 
   Future<String> _setupSshTunnel(Connection connection) async {
+    final sshConfig = connection.sshConfig;
+    if (sshConfig == null) {
+      return connection.uri;
+    }
+
     final parsedUri = Uri.parse(connection.uri);
     final targetHost = parsedUri.host.isEmpty ? '127.0.0.1' : parsedUri.host;
     final targetPort = parsedUri.hasPort ? parsedUri.port : 27017;
 
     final socket = await SSHSocket.connect(
-      connection.sshHost,
-      connection.sshPort,
+      sshConfig.host,
+      sshConfig.port,
       timeout: const Duration(seconds: 15),
     );
 
-    if (connection.sshAuthType == SshAuthType.password) {
+    if (sshConfig.authType == SshAuthType.password) {
       _sshClient = SSHClient(
         socket,
-        username: connection.sshUsername,
-        onPasswordRequest: () => connection.sshPassword,
+        username: sshConfig.username,
+        onPasswordRequest: () => sshConfig.password,
       );
     } else {
       List<SSHKeyPair> keyPairs;
-      if (connection.sshPassphrase.isNotEmpty) {
+      if (sshConfig.passphrase.isNotEmpty) {
         keyPairs = SSHKeyPair.fromPem(
-          connection.sshPrivateKey,
-          connection.sshPassphrase,
+          sshConfig.privateKey,
+          sshConfig.passphrase,
         );
       } else {
-        keyPairs = SSHKeyPair.fromPem(connection.sshPrivateKey);
+        keyPairs = SSHKeyPair.fromPem(sshConfig.privateKey);
       }
 
       _sshClient = SSHClient(
         socket,
-        username: connection.sshUsername,
+        username: sshConfig.username,
         identities: keyPairs,
       );
     }
@@ -110,7 +115,8 @@ class MongoService {
         if (_lastConnection != null &&
             _lastConnection!.name == connection.name &&
             _lastConnection!.uri == connection.uri &&
-            _lastConnection!.useSsh == connection.useSsh) {
+            _lastConnection!.sshConfig?.enabled ==
+                connection.sshConfig?.enabled) {
           return true;
         }
         await _database!.close();
@@ -120,7 +126,7 @@ class MongoService {
       }
 
       String targetUri = connection.uri;
-      if (connection.useSsh) {
+      if (connection.sshConfig?.enabled == true) {
         targetUri = await _setupSshTunnel(connection);
       }
 

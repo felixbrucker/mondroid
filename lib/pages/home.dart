@@ -105,14 +105,17 @@ class HomeState extends State<Home> {
           final conn = connections[i].item;
           _nameController.text = conn.name;
           _uriController.text = conn.uri;
-          _useSsh = conn.useSsh;
-          _sshHostController.text = conn.sshHost;
-          _sshPortController.text = conn.sshPort.toString();
-          _sshUsernameController.text = conn.sshUsername;
-          _sshAuthType = conn.sshAuthType;
-          _sshPasswordController.text = conn.sshPassword;
-          _sshPrivateKeyController.text = conn.sshPrivateKey;
-          _sshPassphraseController.text = conn.sshPassphrase;
+          if (conn.sshConfig != null) {
+            final cfg = conn.sshConfig!;
+            _useSsh = cfg.enabled;
+            _sshHostController.text = cfg.host;
+            _sshPortController.text = cfg.port.toString();
+            _sshUsernameController.text = cfg.username;
+            _sshAuthType = cfg.authType;
+            _sshPasswordController.text = cfg.password;
+            _sshPrivateKeyController.text = cfg.privateKey;
+            _sshPassphraseController.text = cfg.passphrase;
+          }
           break;
         }
       }
@@ -120,17 +123,23 @@ class HomeState extends State<Home> {
 
     Connection buildConnectionToSave() {
       final port = int.tryParse(_sshPortController.text) ?? 22;
+      SshConfig? sshCfg;
+      if (_useSsh) {
+        sshCfg = SshConfig(
+          enabled: true,
+          host: _sshHostController.text,
+          port: port,
+          username: _sshUsernameController.text,
+          authType: _sshAuthType,
+          password: _sshPasswordController.text,
+          privateKey: _sshPrivateKeyController.text,
+          passphrase: _sshPassphraseController.text,
+        );
+      }
       return Connection(
         _nameController.text,
         _uriController.text,
-        useSsh: _useSsh,
-        sshHost: _sshHostController.text,
-        sshPort: port,
-        sshUsername: _sshUsernameController.text,
-        sshAuthType: _sshAuthType,
-        sshPassword: _sshPasswordController.text,
-        sshPrivateKey: _sshPrivateKeyController.text,
-        sshPassphrase: _sshPassphraseController.text,
+        sshConfig: sshCfg,
       );
     }
 
