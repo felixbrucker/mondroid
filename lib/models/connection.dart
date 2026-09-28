@@ -64,9 +64,7 @@ class SshConfig {
       host: json["host"] ?? '',
       port: json["port"] ?? 22,
       username: json["username"] ?? '',
-      auth: json["auth"] != null
-          ? SshAuth.fromJson(Map<String, dynamic>.from(json["auth"]))
-          : SshAuth.fromJson(json),
+      auth: SshAuth.fromJson(Map<String, dynamic>.from(json["auth"] ?? {})),
     );
   }
 
