@@ -107,7 +107,7 @@ class HomeState extends State<Home> {
           _uriController.text = conn.uri;
           if (conn.sshConfig != null) {
             final cfg = conn.sshConfig!;
-            _useSsh = cfg.enabled;
+            _useSsh = true;
             _sshHostController.text = cfg.host;
             _sshPortController.text = cfg.port.toString();
             _sshUsernameController.text = cfg.username;
@@ -126,7 +126,6 @@ class HomeState extends State<Home> {
       SshConfig? sshCfg;
       if (_useSsh) {
         sshCfg = SshConfig(
-          enabled: true,
           host: _sshHostController.text,
           port: port,
           username: _sshUsernameController.text,

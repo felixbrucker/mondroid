@@ -1,7 +1,6 @@
 enum SshAuthType { password, privateKey }
 
 class SshConfig {
-  bool enabled;
   String host;
   int port;
   String username;
@@ -11,7 +10,6 @@ class SshConfig {
   String passphrase;
 
   SshConfig({
-    this.enabled = false,
     this.host = '',
     this.port = 22,
     this.username = '',
@@ -23,21 +21,19 @@ class SshConfig {
 
   factory SshConfig.fromJson(Map<String, dynamic> json) {
     return SshConfig(
-      enabled: json["enabled"] ?? json["useSsh"] ?? false,
-      host: json["host"] ?? json["sshHost"] ?? '',
-      port: json["port"] ?? json["sshPort"] ?? 22,
-      username: json["username"] ?? json["sshUsername"] ?? '',
-      authType: (json["authType"] ?? json["sshAuthType"]) == "privateKey"
+      host: json["host"] ?? '',
+      port: json["port"] ?? 22,
+      username: json["username"] ?? '',
+      authType: json["authType"] == "privateKey"
           ? SshAuthType.privateKey
           : SshAuthType.password,
-      password: json["password"] ?? json["sshPassword"] ?? '',
-      privateKey: json["privateKey"] ?? json["sshPrivateKey"] ?? '',
-      passphrase: json["passphrase"] ?? json["sshPassphrase"] ?? '',
+      password: json["password"] ?? '',
+      privateKey: json["privateKey"] ?? '',
+      passphrase: json["passphrase"] ?? '',
     );
   }
 
   Map<String, dynamic> toJson() => {
-        'enabled': enabled,
         'host': host,
         'port': port,
         'username': username,
@@ -60,18 +56,12 @@ class Connection {
   });
 
   factory Connection.fromJson(Map<String, dynamic> json) {
-    SshConfig? sshCfg;
-    if (json["sshConfig"] != null) {
-      sshCfg = SshConfig.fromJson(Map<String, dynamic>.from(json["sshConfig"]));
-    } else if (json["useSsh"] == true ||
-        (json["sshHost"] != null && (json["sshHost"] as String).isNotEmpty)) {
-      sshCfg = SshConfig.fromJson(json);
-    }
-
     return Connection(
       json["name"] ?? '',
       json["uri"] ?? '',
-      sshConfig: sshCfg,
+      sshConfig: json["sshConfig"] != null
+          ? SshConfig.fromJson(Map<String, dynamic>.from(json["sshConfig"]))
+          : null,
     );
   }
 

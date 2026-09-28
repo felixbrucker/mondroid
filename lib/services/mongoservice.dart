@@ -112,11 +112,12 @@ class MongoService {
   Future<bool> connect(Connection connection) async {
     try {
       if (_database != null && _database!.isConnected) {
+        final sameSsh = (_lastConnection?.sshConfig == null && connection.sshConfig == null) ||
+            (_lastConnection?.sshConfig != null && connection.sshConfig != null);
         if (_lastConnection != null &&
             _lastConnection!.name == connection.name &&
             _lastConnection!.uri == connection.uri &&
-            _lastConnection!.sshConfig?.enabled ==
-                connection.sshConfig?.enabled) {
+            sameSsh) {
           return true;
         }
         await _database!.close();
@@ -126,7 +127,7 @@ class MongoService {
       }
 
       String targetUri = connection.uri;
-      if (connection.sshConfig?.enabled == true) {
+      if (connection.sshConfig != null) {
         targetUri = await _setupSshTunnel(connection);
       }
 

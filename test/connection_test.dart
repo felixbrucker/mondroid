@@ -16,7 +16,6 @@ void main() {
         'SSH Mongo Password',
         'mongodb://user:pass@127.0.0.1:27017/mydb',
         sshConfig: SshConfig(
-          enabled: true,
           host: '192.168.1.100',
           port: 2222,
           username: 'sshuser',
@@ -28,7 +27,6 @@ void main() {
       final json = conn.toJson();
       expect(json['name'], 'SSH Mongo Password');
       expect(json['sshConfig'], isNotNull);
-      expect(json['sshConfig']['enabled'], true);
       expect(json['sshConfig']['host'], '192.168.1.100');
       expect(json['sshConfig']['port'], 2222);
       expect(json['sshConfig']['username'], 'sshuser');
@@ -38,7 +36,6 @@ void main() {
       final deserialized = Connection.fromJson(json);
       expect(deserialized.name, 'SSH Mongo Password');
       expect(deserialized.sshConfig, isNotNull);
-      expect(deserialized.sshConfig!.enabled, true);
       expect(deserialized.sshConfig!.host, '192.168.1.100');
       expect(deserialized.sshConfig!.port, 2222);
       expect(deserialized.sshConfig!.username, 'sshuser');
@@ -51,7 +48,6 @@ void main() {
         'SSH Mongo Key',
         'mongodb://127.0.0.1:27017/mydb',
         sshConfig: SshConfig(
-          enabled: true,
           host: 'example.com',
           port: 22,
           username: 'root',
@@ -72,31 +68,14 @@ void main() {
       expect(deserialized.sshConfig!.passphrase, 'keypassphrase');
     });
 
-    test('Backwards compatibility for JSON with flat SSH fields or no SSH fields', () {
-      final oldFlatJson = {
-        'name': 'Flat SSH Connection',
-        'uri': 'mongodb://localhost:27017/test',
-        'useSsh': true,
-        'sshHost': '10.0.0.1',
-        'sshPort': 22,
-        'sshUsername': 'admin',
-        'sshAuthType': 'password',
-        'sshPassword': 'secretpassword',
-      };
-
-      final conn = Connection.fromJson(oldFlatJson);
-      expect(conn.name, 'Flat SSH Connection');
-      expect(conn.sshConfig, isNotNull);
-      expect(conn.sshConfig!.enabled, true);
-      expect(conn.sshConfig!.host, '10.0.0.1');
-      expect(conn.sshConfig!.username, 'admin');
-
-      final noSshJson = {
+    test('Connection without SSH config deserialization', () {
+      final json = {
         'name': 'Old Connection',
         'uri': 'mongodb://localhost:27017/test',
       };
-      final connNoSsh = Connection.fromJson(noSshJson);
-      expect(connNoSsh.sshConfig, null);
+      final conn = Connection.fromJson(json);
+      expect(conn.name, 'Old Connection');
+      expect(conn.sshConfig, null);
     });
 
     test('Mask connection string password', () {
