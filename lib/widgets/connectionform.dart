@@ -176,11 +176,11 @@ class _ConnectionFormState extends State<ConnectionForm> {
             items: const [
               DropdownMenuItem(
                 value: SshAuthMode.password,
-                child: Text('Password'),
+                child: Text('Password Auth'),
               ),
               DropdownMenuItem(
                 value: SshAuthMode.privateKey,
-                child: Text('Public Key'),
+                child: Text('Public Key Auth'),
               ),
             ],
             onChanged: (SshAuthMode? value) {
