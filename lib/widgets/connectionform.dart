@@ -206,7 +206,7 @@ class _ConnectionFormState extends State<ConnectionForm> {
           ] else ...[
             TextField(
               controller: widget.sshPrivateKeyController,
-              maxLines: 4,
+              obscureText: true,
               textInputAction: TextInputAction.next,
               smartQuotesType: SmartQuotesType.disabled,
               smartDashesType: SmartDashesType.disabled,
