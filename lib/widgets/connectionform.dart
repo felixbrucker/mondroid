@@ -150,8 +150,8 @@ class _ConnectionFormState extends State<ConnectionForm> {
                   keyboardType: TextInputType.number,
                   textInputAction: TextInputAction.next,
                   decoration: const InputDecoration(
-                    hintText: "Port",
-                    helperText: '22',
+                    hintText: "22",
+                    helperText: 'Port',
                   ),
                 ),
               ),
