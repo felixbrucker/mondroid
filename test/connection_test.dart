@@ -88,5 +88,43 @@ void main() {
       expect(conn.getMaskedConnectionString(),
           'mongodb://dbuser:*****@cluster.mongodb.net/test');
     });
+
+    test('Connection equality comparison using Equatable', () {
+      final conn1 = Connection(
+        'Test Mongo',
+        'mongodb://localhost:27017/db',
+        sshConfig: SshConfig(
+          host: '1.2.3.4',
+          port: 22,
+          username: 'user',
+          auth: const SshPasswordAuth(password: 'pass'),
+        ),
+      );
+
+      final conn2 = Connection(
+        'Test Mongo',
+        'mongodb://localhost:27017/db',
+        sshConfig: SshConfig(
+          host: '1.2.3.4',
+          port: 22,
+          username: 'user',
+          auth: const SshPasswordAuth(password: 'pass'),
+        ),
+      );
+
+      final conn3 = Connection(
+        'Test Mongo',
+        'mongodb://localhost:27017/db',
+        sshConfig: SshConfig(
+          host: '1.2.3.4',
+          port: 22,
+          username: 'user',
+          auth: const SshPasswordAuth(password: 'different_pass'),
+        ),
+      );
+
+      expect(conn1, equals(conn2));
+      expect(conn1, isNot(equals(conn3)));
+    });
   });
 }

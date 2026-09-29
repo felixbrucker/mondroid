@@ -113,12 +113,7 @@ class MongoService {
   Future<bool> connect(Connection connection) async {
     try {
       if (_database != null && _database!.isConnected) {
-        final sameSsh = (_lastConnection?.sshConfig == null && connection.sshConfig == null) ||
-            (_lastConnection?.sshConfig != null && connection.sshConfig != null);
-        if (_lastConnection != null &&
-            _lastConnection!.name == connection.name &&
-            _lastConnection!.uri == connection.uri &&
-            sameSsh) {
+        if (_lastConnection == connection) {
           return true;
         }
         await _database!.close();

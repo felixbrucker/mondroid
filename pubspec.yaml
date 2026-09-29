@@ -47,6 +47,7 @@ dependencies:
   fixnum: ^1.1.0
   flutter_keyboard_visibility: ^6.0.0
   dartssh2: ^4.1.0
+  equatable: ^3.0.0
 
 dev_dependencies:
   flutter_test:

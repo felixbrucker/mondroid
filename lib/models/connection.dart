@@ -1,4 +1,6 @@
-sealed class SshAuth {
+import 'package:equatable/equatable.dart';
+
+sealed class SshAuth extends Equatable {
   const SshAuth();
 
   factory SshAuth.fromJson(Map<String, dynamic> json) {
@@ -23,6 +25,9 @@ class SshPasswordAuth extends SshAuth {
   const SshPasswordAuth({this.password = ''});
 
   @override
+  List<Object?> get props => [password];
+
+  @override
   Map<String, dynamic> toJson() => {
         'type': 'password',
         'password': password,
@@ -39,6 +44,9 @@ class SshPrivateKeyAuth extends SshAuth {
   });
 
   @override
+  List<Object?> get props => [privateKey, passphrase];
+
+  @override
   Map<String, dynamic> toJson() => {
         'type': 'privateKey',
         'privateKey': privateKey,
@@ -46,13 +54,13 @@ class SshPrivateKeyAuth extends SshAuth {
       };
 }
 
-class SshConfig {
-  String host;
-  int port;
-  String username;
-  SshAuth auth;
+class SshConfig extends Equatable {
+  final String host;
+  final int port;
+  final String username;
+  final SshAuth auth;
 
-  SshConfig({
+  const SshConfig({
     this.host = '',
     this.port = 22,
     this.username = '',
@@ -68,6 +76,9 @@ class SshConfig {
     );
   }
 
+  @override
+  List<Object?> get props => [host, port, username, auth];
+
   Map<String, dynamic> toJson() => {
         'host': host,
         'port': port,
@@ -76,12 +87,12 @@ class SshConfig {
       };
 }
 
-class Connection {
-  String name;
-  String uri;
-  SshConfig? sshConfig;
+class Connection extends Equatable {
+  final String name;
+  final String uri;
+  final SshConfig? sshConfig;
 
-  Connection(
+  const Connection(
     this.name,
     this.uri, {
     this.sshConfig,
@@ -96,6 +107,9 @@ class Connection {
           : null,
     );
   }
+
+  @override
+  List<Object?> get props => [name, uri, sshConfig];
 
   Map<String, dynamic> toJson() => {
         'name': name,
